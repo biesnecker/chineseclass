@@ -1,77 +1,86 @@
-class Flashcard {
-  constructor(character, pinyin, definition, audio) {
-    this.character = character;
-    this.pinyin = pinyin;
-    this.definition = definition;
-    this.audio = audio;
-  }
+function isIOS() {
+  return (
+    [
+      "iPad Simulator",
+      "iPhone Simulator",
+      "iPod Simulator",
+      "iPad",
+      "iPhone",
+      "iPod",
+    ].includes(navigator.platform) ||
+    // iPad on iOS 13 detection
+    (navigator.userAgent.includes("Mac") && "ontouchend" in document)
+  );
 }
 
-const rand_int = (max) => {
+const randomInteger = (max) => {
   return Math.floor(Math.random() * max);
 };
 
-const updateStats = (elem, tried, correct) => {
-  var percent = 0.0;
-  if (tried != 0) {
-    percent = correct / tried;
+const updateStats = (elem, stats) => {
+  let percent = 0.0;
+  if (stats.attempted != 0) {
+    percent = stats.correct / stats.attempted;
   }
-  elem.innerHTML = `${correct} / ${tried} (${(percent * 100).toFixed(2)}%)`;
+  elem.innerHTML = `${stats.correct} / ${stats.attempted} (${(
+    percent * 100
+  ).toFixed(2)}%)`;
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-  const elem_datatable = document.getElementById("datatable");
-  const elem_character = document.getElementById("character");
-  const elem_pinyin = document.getElementById("pinyin");
-  const elem_stats = document.getElementById("stats");
-  const elem_options = [
-    document.getElementById("option_0"),
-    document.getElementById("option_1"),
-    document.getElementById("option_2"),
-    document.getElementById("option_3"),
-  ];
-  const elem_audio = document.getElementById("audiosource");
+  const elements = {
+    datatable: document.getElementById("datatable"),
+    character: document.getElementById("character"),
+    pinyin: document.getElementById("pinyin"),
+    stats: document.getElementById("stats"),
+    audio: document.getElementById("audiosource"),
+    options: [
+      document.getElementById("option_0"),
+      document.getElementById("option_1"),
+      document.getElementById("option_2"),
+      document.getElementById("option_3"),
+    ],
+  };
 
-  var cards_correct = 0;
-  var cards_tried = 0;
-  var mode = 0;
-  var flashcards = [];
+  // If it's iOS, remove the use_hover class from body.
+  if (isIOS()) {
+    datatable.classList.remove("use_hover");
+  }
+
+  let stats = {
+    correct: 0,
+    attempted: 0,
+  };
+
+  let mode = 0;
+  let flashcards = [];
 
   const ts = Math.floor(Date.now() / 1000);
 
   fetch(`/data.json?ts=${ts}`)
     .then((response) => response.json())
     .then((jd) => {
-      jd.forEach((element) => {
-        flashcards.push(
-          new Flashcard(
-            element.character,
-            element.pinyin,
-            element.definition,
-            element.audio
-          )
-        );
-      });
+      jd.forEach((element) => flashcards.push(element));
 
-      updateStats(elem_stats, cards_tried, cards_correct);
+      updateStats(elements.stats, stats);
 
-      var recent = [];
+      let recent = [];
       const recent_max_size = Math.min(
         Math.max(Math.floor(flashcards.length / 2), 1),
         20
       );
-      var recent_set = new Set();
-      var recent_next_insert = 0;
-      for (var i = 0; i < recent_max_size; ++i) {
+      let recent_set = new Set();
+      let recent_next_insert = 0;
+      for (let i = 0; i < recent_max_size; ++i) {
         recent.push(null);
       }
 
-      var right_answer_idx = 0;
+      let right_answer_idx = 0;
 
       const next_card = () => {
-        var card;
-        var card_idx;
-        var finished = false;
+        let card;
+        let card_idx;
+        let finished = false;
         if (recent[recent_next_insert] != null) {
           const n = recent[recent_next_insert];
           recent_set.delete(n);
@@ -79,7 +88,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         while (!finished) {
-          const idx = rand_int(flashcards.length);
+          const idx = randomInteger(flashcards.length);
           if (recent_set.has(idx)) {
             continue;
           }
@@ -92,11 +101,11 @@ document.addEventListener("DOMContentLoaded", () => {
           finished = true;
         }
 
-        var alternate_definitions = new Set();
-        var alternate_idx = 0;
+        let alternate_definitions = new Set();
+        let alternate_idx = 0;
         finished = false;
         while (alternate_definitions.size < 3) {
-          alternate_idx = rand_int(flashcards.length);
+          alternate_idx = randomInteger(flashcards.length);
           if (
             alternate_idx == card_idx ||
             alternate_definitions.has(alternate_idx)
@@ -106,20 +115,20 @@ document.addEventListener("DOMContentLoaded", () => {
           alternate_definitions.add(alternate_idx);
         }
 
-        elem_character.innerHTML = card.character;
-        elem_pinyin.innerHTML = card.pinyin;
-        elem_audio.setAttribute("src", "audio/" + card.audio);
-        elem_audio.play();
+        elements.character.innerHTML = card.character;
+        elements.pinyin.innerHTML = card.pinyin;
+        elements.audio.setAttribute("src", "audio/" + card.audio);
+        elements.audio.play();
 
         // This index is where the correct answer goes. The other indexes
         // get set with one of the alternate indexes.
         const alts = alternate_definitions.values();
-        right_answer_idx = rand_int(4);
-        for (var i = 0; i < 4; ++i) {
+        right_answer_idx = randomInteger(4);
+        for (let i = 0; i < 4; ++i) {
           if (i == right_answer_idx) {
-            elem_options[i].innerHTML = card.definition;
+            elements.options[i].innerHTML = card.definition;
           } else {
-            elem_options[i].innerHTML =
+            elements.options[i].innerHTML =
               flashcards[alts.next().value].definition;
           }
         }
@@ -132,24 +141,24 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
           }
           mode = 1;
-          elem_datatable.classList.add("answer_mode");
-          elem_options[right_answer_idx].classList.add("correct");
-          ++cards_tried;
+          elements.datatable.classList.add("answer_mode");
+          elements.options[right_answer_idx].classList.add("correct");
+          stats.attempted += 1;
           const correct = option_id == right_answer_idx;
           if (correct) {
-            ++cards_correct;
+            stats.correct += 1;
           } else {
-            elem_options[option_id].classList.add("incorrect");
+            elements.options[option_id].classList.add("incorrect");
           }
-          updateStats(elem_stats, cards_tried, cards_correct);
+          updateStats(elements.stats, stats);
           setTimeout(
             () => {
               mode = 0;
-              elem_datatable.classList.remove("answer_mode");
-              elem_datatable.classList.add("normal_mode");
-              elem_options[right_answer_idx].classList.remove("correct");
-              elem_options[option_id].classList.remove("incorrect");
-              elem_options[option_id].blur();
+              elements.datatable.classList.remove("answer_mode");
+              elements.datatable.classList.add("normal_mode");
+              elements.options[right_answer_idx].classList.remove("correct");
+              elements.options[option_id].classList.remove("incorrect");
+              elements.options[option_id].blur();
               next_card();
             },
             correct ? 750 : 1500
@@ -160,16 +169,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const audio_click_handler = (e) => {
         e.preventDefault();
-        if (mode == 0 && elem_audio.hasAttribute("src")) {
-          elem_audio.play();
+        if (mode == 0 && elements.audio.hasAttribute("src")) {
+          elements.audio.play();
         }
       };
 
-      elem_character.addEventListener("click", audio_click_handler);
-      elem_pinyin.addEventListener("click", audio_click_handler);
+      elements.character.addEventListener("click", audio_click_handler);
+      elements.pinyin.addEventListener("click", audio_click_handler);
 
-      for (var i = 0; i < 4; ++i) {
-        elem_options[i].addEventListener("click", click_handler(i));
+      for (let i = 0; i < 4; ++i) {
+        elements.options[i].addEventListener("click", click_handler(i));
       }
 
       next_card();

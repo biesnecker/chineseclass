@@ -1,49 +1,49 @@
 #header {
-  text-align:center;
+  text-align: center;
 }
 
 #datatable {
-  margin-right:auto;
-  margin-left:auto;
+  margin-right: auto;
+  margin-left: auto;
   background-color: aliceblue;
-  max-width:600px;
+  max-width: 600px;
 }
 
 #datatable td {
-  padding:10px;
+  padding: 10px;
 }
 
 #character {
-  font-size:300%;
-  text-align:center;
-  min-width:150px;
+  font-size: 300%;
+  text-align: center;
+  min-width: 150px;
   cursor: pointer;
 }
 
 #pinyin {
-  font-size:150%;
-  text-align:center;
+  font-size: 150%;
+  text-align: center;
   cursor: pointer;
 }
 
 #stats {
-  text-align:center;
+  text-align: center;
 }
 
 .option {
-  font-size:150%;
-  min-width:200px;
+  font-size: 150%;
+  min-width: 200px;
 }
 
-#datatable.normal_mode .option:hover {
-  background-color:lightblue;
+#datatable.normal_mode.use_hover .option:hover {
+  background-color: lightblue;
   cursor: pointer;
 }
 
 #datatable.answer_mode .option.correct {
-  background-color:lightgreen;
+  background-color: lightgreen;
 }
 
 #datatable.answer_mode .option.incorrect {
-  background-color:lightpink;
+  background-color: lightpink;
 }
