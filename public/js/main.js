@@ -1,4 +1,86 @@
-function isIOS() {
+const pinyinVowelsRe = /[aeiouv]{1,2}/;
+
+const pinyinVowelOrder = {
+  a: 0,
+  o: 1,
+  e: 2,
+  i: 3,
+  u: 4,
+  v: 5,
+};
+
+const pinyinReplacements = {
+  a: ["ā", "á", "ǎ", "à"],
+  e: ["ē", "é", "ě", "è"],
+  o: ["ō", "ó", "ǒ", "ò"],
+  u: ["ū", "ú", "ǔ", "ù"],
+  i: ["ī", "í", "ǐ", "ì"],
+  v: ["ǖ", "ǘ", "ǚ", "ǜ"],
+};
+
+const transformPinyin = (pinyin) => {
+  const transformed = pinyin
+    .trim()
+    .split(" ")
+    .map((syllable) => {
+      const last_letter = syllable.charAt(syllable.length - 1);
+      const tone =
+        last_letter >= "0" && last_letter <= "9"
+          ? parseInt(last_letter, 10)
+          : 0;
+      if (tone === 0) {
+        return syllable;
+      }
+
+      toneless = syllable.slice(0, -1);
+
+      if (tone === 5) {
+        return toneless;
+      }
+
+      const m = toneless.match(pinyinVowelsRe);
+      if (m === null) {
+        // If it doesn't have vowels, bail.
+        return syllable;
+      }
+
+      const vowels = m[0];
+      let idx = 0;
+      if (vowels.length === 1) {
+        idx = m.index;
+      } else if (vowels === "iu" || vowels === "ui") {
+        // The final vowel.
+        idx = m.index + 1;
+      } else {
+        // Use vowel precedence.
+        let lowest = 6;
+        let lowest_idx = 0;
+        for (let i = 0; i < vowels.length; ++i) {
+          const vo = pinyinVowelOrder[vowels[i]];
+          if (vo < lowest) {
+            lowest = vo;
+            lowest_idx = i;
+          }
+        }
+        idx = m.index + lowest_idx;
+      }
+
+      const replaced_char = toneless.charAt(idx);
+      const replaced =
+        toneless.substr(0, idx) +
+        pinyinReplacements[replaced_char][tone - 1] +
+        toneless.substr(idx + 1);
+
+      return replaced;
+    });
+  return transformed.join(" ");
+};
+
+const isLocalhost = ["localhost", "127.0.0.1", ""].includes(
+  window.location.hostname
+);
+
+const isIOS = () => {
   return (
     [
       "iPad Simulator",
@@ -11,7 +93,7 @@ function isIOS() {
     // iPad on iOS 13 detection
     (navigator.userAgent.includes("Mac") && "ontouchend" in document)
   );
-}
+};
 
 const randomInteger = (max) => {
   return Math.floor(Math.random() * max);
@@ -25,6 +107,14 @@ const updateStats = (elem, stats) => {
   elem.innerHTML = `${stats.correct} / ${stats.attempted} (${(
     percent * 100
   ).toFixed(2)}%)`;
+};
+
+const audioPath = (filename) => {
+  if (isLocalhost) {
+    return `audio/${filename}`;
+  } else {
+    return `https://d25j8baqrvaujh.cloudfront.net/${filename}`;
+  }
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -57,7 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const ts = Math.floor(Date.now() / 1000);
 
-  fetch(`/data.json?ts=${ts}`)
+  fetch(`data.json?ts=${ts}`)
     .then((response) => response.json())
     .then((jd) => {
       jd.forEach((element) => flashcards.push(element));
@@ -107,7 +197,7 @@ document.addEventListener("DOMContentLoaded", () => {
         while (alternate_definitions.size < 3) {
           alternate_idx = randomInteger(flashcards.length);
           if (
-            alternate_idx == card_idx ||
+            alternate_idx === card_idx ||
             alternate_definitions.has(alternate_idx)
           ) {
             continue;
@@ -116,8 +206,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         elements.character.innerHTML = card.character;
-        elements.pinyin.innerHTML = card.pinyin;
-        elements.audio.setAttribute("src", "audio/" + card.audio);
+        elements.pinyin.innerHTML = transformPinyin(card.pinyin);
+        elements.audio.setAttribute("src", audioPath(card.audio));
         elements.audio.play();
 
         // This index is where the correct answer goes. The other indexes
@@ -125,7 +215,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const alts = alternate_definitions.values();
         right_answer_idx = randomInteger(4);
         for (let i = 0; i < 4; ++i) {
-          if (i == right_answer_idx) {
+          if (i === right_answer_idx) {
             elements.options[i].innerHTML = card.definition;
           } else {
             elements.options[i].innerHTML =
@@ -137,14 +227,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const click_handler = (option_id) => {
         const h = (e) => {
           e.preventDefault();
-          if (mode == 1) {
+          if (mode === 1) {
             return;
           }
           mode = 1;
           elements.datatable.classList.add("answer_mode");
           elements.options[right_answer_idx].classList.add("correct");
           stats.attempted += 1;
-          const correct = option_id == right_answer_idx;
+          const correct = option_id === right_answer_idx;
           if (correct) {
             stats.correct += 1;
           } else {
@@ -158,7 +248,6 @@ document.addEventListener("DOMContentLoaded", () => {
               elements.datatable.classList.add("normal_mode");
               elements.options[right_answer_idx].classList.remove("correct");
               elements.options[option_id].classList.remove("incorrect");
-              elements.options[option_id].blur();
               next_card();
             },
             correct ? 750 : 1500
@@ -169,17 +258,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const audio_click_handler = (e) => {
         e.preventDefault();
-        if (mode == 0 && elements.audio.hasAttribute("src")) {
+        if (mode === 0 && elements.audio.hasAttribute("src")) {
           elements.audio.play();
         }
       };
 
-      elements.character.addEventListener("click", audio_click_handler);
-      elements.pinyin.addEventListener("click", audio_click_handler);
+      [elements.character, elements.pinyin].forEach((elem) =>
+        addEventListener("click", audio_click_handler)
+      );
 
-      for (let i = 0; i < 4; ++i) {
-        elements.options[i].addEventListener("click", click_handler(i));
-      }
+      elements.options.forEach((elem, i) =>
+        elem.addEventListener("click", click_handler(i))
+      );
 
       next_card();
     });

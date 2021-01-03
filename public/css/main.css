@@ -40,10 +40,12 @@
   cursor: pointer;
 }
 
+#datatable.answer_mode.use_hover .option.correct,
 #datatable.answer_mode .option.correct {
   background-color: lightgreen;
 }
 
+#datatable.answer_mode.use_hover .option.incorrect,
 #datatable.answer_mode .option.incorrect {
   background-color: lightpink;
 }
