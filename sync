@@ -1,4 +1,5 @@
 #!/bin/sh
 
+node index.js
 aws s3 sync ./public s3://kids.biesnecker.com/chineseflashcards/ --exclude "*.mp3"
 aws s3 sync ./public/audio s3://kids-flashcard-audio --include "*.mp3"

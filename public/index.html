@@ -1,10 +1,13 @@
 <!doctype html>
-<html class="no-js" lang="">
+<html class="no-js" lang="en">
 
 <head>
   <meta charset="utf-8">
   <title>中文课</title>
-  <meta name="description" content="">
+  <link rel="icon" href="favicon.ico" />
+  <link rel="apple-touch-icon" href="logo192.png" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="description" content="Flashcards for the kids">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <link rel="stylesheet" href="css/normalize.css">
@@ -12,33 +15,18 @@
 </head>
 
 <body>
-  <h1 id="header">中文课</h1>
-  <br />
-
-  <table id="datatable" class="normal_mode use_hover">
-    <tr>
-      <td id="character">&nbsp;</td>
-    </tr>
-    <tr>
-      <td id="pinyin">&nbsp;</td>
-    </tr>
-    <tr>
-      <td class="option" id="option_0">&nbsp;</td>
-    </tr>
-    <tr>
-      <td class="option" id="option_1">&nbsp;</td>
-    </tr>
-    <tr>
-      <td class="option" id="option_2">&nbsp;</td>
-    </tr>
-    <tr>
-      <td class="option" id="option_3">&nbsp;</td>
-    </tr>
-    <tr>
-      <td id="stats">&nbsp;</td>
-    </tr>
-  </table>
-  <audio id="audiosource"></audio>
+  <div id="container">
+    <div id="datatable" class="normal_mode use_hover">
+      <div id="character">&nbsp;</div>
+      <div id="pinyin">&nbsp;</div>
+      <div class="opt" id="option_0">&nbsp;</div>
+      <div class="opt" id="option_1">&nbsp;</div>
+      <div class="opt" id="option_2">&nbsp;</div>
+      <div class="opt" id="option_3">&nbsp;</div>
+      <div id="stats">&nbsp;</div>
+      <audio id="audiosource"></audio>
+    </div>
+  </div>
 
   <!-- Add your site or application content here -->
   <script src="js/vendor/modernizr-3.11.2.min.js"></script>

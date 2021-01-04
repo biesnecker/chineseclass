@@ -34,7 +34,7 @@ const transformPinyin = (pinyin) => {
 
       toneless = syllable.slice(0, -1);
 
-      if (tone === 5) {
+      if (tone < 1 || tone > 4) {
         return toneless;
       }
 
@@ -198,7 +198,8 @@ document.addEventListener("DOMContentLoaded", () => {
           alternate_idx = randomInteger(flashcards.length);
           if (
             alternate_idx === card_idx ||
-            alternate_definitions.has(alternate_idx)
+            alternate_definitions.has(alternate_idx) ||
+            recent_set.has(alternate_idx)
           ) {
             continue;
           }
@@ -264,7 +265,7 @@ document.addEventListener("DOMContentLoaded", () => {
       };
 
       [elements.character, elements.pinyin].forEach((elem) =>
-        addEventListener("click", audio_click_handler)
+        elem.addEventListener("click", audio_click_handler)
       );
 
       elements.options.forEach((elem, i) =>
