@@ -23,6 +23,9 @@ def main(args):
         if obj["character"] == char:
             path = audioDir / obj["audio"]
             os.system(f"afplay {path}")
+            break
+    else:
+        print(f"{char} not found")
 
 
 if __name__ == "__main__":
