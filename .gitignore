@@ -5,3 +5,4 @@ node_modules
 dist
 .cache
 *.mp3
+package-lock.json
