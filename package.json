@@ -13,5 +13,9 @@
     "aws-sdk": "^2.819.0",
     "fast-csv": "^4.3.6",
     "stream-reduce": "^1.0.3"
+  },
+  "devDependencies": {
+    "webpack": "^5.11.1",
+    "webpack-cli": "^4.3.1"
   }
 }
