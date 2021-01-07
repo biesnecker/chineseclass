@@ -6,7 +6,7 @@ import { getAudioPath } from "../utils/helpers";
 
 const renderCEHeadword = (props, ref) => {
   return (
-    <div>
+    <div id="headword">
       <Character
         text={props.card.character}
         audioClickHandler={props.audioClickHandler}

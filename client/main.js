@@ -1,38 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import CEHeadword from "./components/CEHeadword";
-import Character from "./components/Character";
-import Pinyin from "./components/Pinyin";
+import CEOptions from "./components/CEOptions";
 import Stats from "./components/Stats";
-import { isIOS, getAudioPath, randomInteger } from "./utils/helpers";
-
-const updateStats = (elem, stats) => {
-  ReactDOM.render(
-    <Stats correct={stats.correct} attempted={stats.attempted} />,
-    elem
-  );
-};
+import { isIOS, randomInteger } from "./utils/helpers";
 
 document.addEventListener("DOMContentLoaded", () => {
-  const elements = {
-    datatable: document.getElementById("datatable"),
-    character: document.getElementById("character"),
-    pinyin: document.getElementById("pinyin"),
-    stats: document.getElementById("stats"),
-    audio: document.getElementById("audiosource"),
-    options: [
-      document.getElementById("option_0"),
-      document.getElementById("option_1"),
-      document.getElementById("option_2"),
-      document.getElementById("option_3"),
-    ],
-  };
-
-  // If it's iOS, remove the use_hover class from body.
-  if (isIOS()) {
-    datatable.classList.remove("use_hover");
-  }
-
   let stats = {
     correct: 0,
     attempted: 0,
@@ -48,8 +21,6 @@ document.addEventListener("DOMContentLoaded", () => {
     .then((jd) => {
       jd.forEach((element) => flashcards.push(element));
 
-      updateStats(elements.stats, stats);
-
       const audioRef = React.createRef();
 
       let recent = [];
@@ -64,6 +35,35 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       let right_answer_idx = 0;
+      let chosen_answer_idx = 0;
+
+      let choices = [];
+
+      let card;
+      let card_idx;
+
+      const render = () => {
+        const mode_class = mode == 0 ? "normal_mode" : "answer_mode";
+        const hover_class = isIOS() ? "" : "use_hover";
+        ReactDOM.render(
+          <div id="datatable" className={`${mode_class} ${hover_class}`}>
+            <CEHeadword
+              card={card}
+              ref={audioRef}
+              audioClickHandler={audio_click_handler}
+            />
+            <CEOptions
+              choices={choices}
+              mode={mode}
+              rightAnswer={right_answer_idx}
+              chosenAnswer={chosen_answer_idx}
+              clickHandlerFactory={option_click_handler}
+            />
+            <Stats correct={stats.correct} attempted={stats.attempted} />
+          </div>,
+          document.getElementById("container")
+        );
+      };
 
       const option_click_handler = (option_id) => {
         const h = (e) => {
@@ -72,23 +72,16 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
           }
           mode = 1;
-          elements.datatable.classList.add("answer_mode");
-          elements.options[right_answer_idx].classList.add("correct");
-          stats.attempted += 1;
-          const correct = option_id === right_answer_idx;
+          chosen_answer_idx = option_id;
+          const correct = chosen_answer_idx === right_answer_idx;
           if (correct) {
             stats.correct += 1;
-          } else {
-            elements.options[option_id].classList.add("incorrect");
           }
-          updateStats(elements.stats, stats);
+          stats.attempted += 1;
+          render();
           setTimeout(
             () => {
               mode = 0;
-              elements.datatable.classList.remove("answer_mode");
-              elements.datatable.classList.add("normal_mode");
-              elements.options[right_answer_idx].classList.remove("correct");
-              elements.options[option_id].classList.remove("incorrect");
               next_card();
             },
             correct ? 750 : 1500
@@ -105,8 +98,6 @@ document.addEventListener("DOMContentLoaded", () => {
       };
 
       const next_card = () => {
-        let card;
-        let card_idx;
         let finished = false;
         if (recent[recent_next_insert] != null) {
           const n = recent[recent_next_insert];
@@ -143,33 +134,22 @@ document.addEventListener("DOMContentLoaded", () => {
           alternate_definitions.add(alternate_idx);
         }
 
-        ReactDOM.render(
-          <CEHeadword
-            card={card}
-            ref={audioRef}
-            audioClickHandler={audio_click_handler}
-          />,
-          document.getElementById("headword")
-        );
-        audioRef.current.play();
-
         // This index is where the correct answer goes. The other indexes
         // get set with one of the alternate indexes.
         const alts = alternate_definitions.values();
+        choices = [];
         right_answer_idx = randomInteger(4);
         for (let i = 0; i < 4; ++i) {
           if (i === right_answer_idx) {
-            elements.options[i].innerHTML = card.definition;
+            choices.push(card);
           } else {
-            elements.options[i].innerHTML =
-              flashcards[alts.next().value].definition;
+            choices.push(flashcards[alts.next().value]);
           }
         }
-      };
 
-      elements.options.forEach((elem, i) =>
-        elem.addEventListener("click", option_click_handler(i))
-      );
+        render();
+        audioRef.current.play();
+      };
 
       next_card();
     });

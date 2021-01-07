@@ -40,18 +40,18 @@ h1 {
   cursor: pointer;
 }
 
-#datatable.normal_mode.use_hover .opt:hover {
+.normal_mode.use_hover .opt:hover {
   background-color: lightblue;
 }
 
-#datatable.answer_mode.use_hover .opt.correct,
-#datatable.answer_mode .opt.correct {
+.answer_mode.use_hover .opt.correct,
+.answer_mode .opt.correct {
   background-color: lightgreen;
   border-bottom: 1px lightgreen solid;
 }
 
-#datatable.answer_mode.use_hover .opt.incorrect,
-#datatable.answer_mode .opt.incorrect {
+.answer_mode.use_hover .opt.incorrect,
+.answer_mode .opt.incorrect {
   background-color: lightpink;
   border-bottom: 1px lightpink solid;
 }

@@ -6,9 +6,9 @@ const Stats = (props) => {
     percent = props.correct / props.attempted;
   }
   return (
-    <div>{`${props.correct} / ${props.attempted} (${(percent * 100).toFixed(
-      2
-    )}%)`}</div>
+    <div id="stats">{`${props.correct} / ${props.attempted} (${(
+      percent * 100
+    ).toFixed(2)}%)`}</div>
   );
 };
 
