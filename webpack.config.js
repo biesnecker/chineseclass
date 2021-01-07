@@ -7,4 +7,13 @@ module.exports = {
   },
   mode: "production",
   devtool: "source-map",
+  module: {
+    rules: [
+      {
+        loader: "babel-loader",
+        test: /\.js$/,
+        exclude: /node_modules/,
+      },
+    ],
+  },
 };

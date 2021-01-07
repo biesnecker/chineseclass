@@ -1,4 +1,7 @@
+import React from "react";
+import ReactDOM from "react-dom";
 import transformPinyin from "./pinyin";
+import Stats from "./components/Stats.js";
 
 const isLocalhost = ["localhost", "127.0.0.1", ""].includes(
   window.location.hostname
@@ -24,13 +27,10 @@ const randomInteger = (max) => {
 };
 
 const updateStats = (elem, stats) => {
-  let percent = 0.0;
-  if (stats.attempted != 0) {
-    percent = stats.correct / stats.attempted;
-  }
-  elem.innerHTML = `${stats.correct} / ${stats.attempted} (${(
-    percent * 100
-  ).toFixed(2)}%)`;
+  ReactDOM.render(
+    <Stats correct={stats.correct} attempted={stats.attempted} />,
+    elem
+  );
 };
 
 const audioPath = (filename) => {
