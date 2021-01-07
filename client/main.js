@@ -1,44 +1,16 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import transformPinyin from "./pinyin";
-import Stats from "./components/Stats.js";
-
-const isLocalhost = ["localhost", "127.0.0.1", ""].includes(
-  window.location.hostname
-);
-
-const isIOS = () => {
-  return (
-    [
-      "iPad Simulator",
-      "iPhone Simulator",
-      "iPod Simulator",
-      "iPad",
-      "iPhone",
-      "iPod",
-    ].includes(navigator.platform) ||
-    // iPad on iOS 13 detection
-    (navigator.userAgent.includes("Mac") && "ontouchend" in document)
-  );
-};
-
-const randomInteger = (max) => {
-  return Math.floor(Math.random() * max);
-};
+import CEHeadword from "./components/CEHeadword";
+import Character from "./components/Character";
+import Pinyin from "./components/Pinyin";
+import Stats from "./components/Stats";
+import { isIOS, getAudioPath, randomInteger } from "./utils/helpers";
 
 const updateStats = (elem, stats) => {
   ReactDOM.render(
     <Stats correct={stats.correct} attempted={stats.attempted} />,
     elem
   );
-};
-
-const audioPath = (filename) => {
-  if (isLocalhost) {
-    return `audio/${filename}`;
-  } else {
-    return `https://d25j8baqrvaujh.cloudfront.net/${filename}`;
-  }
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -78,6 +50,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       updateStats(elements.stats, stats);
 
+      const audioRef = React.createRef();
+
       let recent = [];
       const recent_max_size = Math.min(
         Math.max(Math.floor(flashcards.length / 2), 1),
@@ -90,6 +64,45 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       let right_answer_idx = 0;
+
+      const option_click_handler = (option_id) => {
+        const h = (e) => {
+          e.preventDefault();
+          if (mode === 1) {
+            return;
+          }
+          mode = 1;
+          elements.datatable.classList.add("answer_mode");
+          elements.options[right_answer_idx].classList.add("correct");
+          stats.attempted += 1;
+          const correct = option_id === right_answer_idx;
+          if (correct) {
+            stats.correct += 1;
+          } else {
+            elements.options[option_id].classList.add("incorrect");
+          }
+          updateStats(elements.stats, stats);
+          setTimeout(
+            () => {
+              mode = 0;
+              elements.datatable.classList.remove("answer_mode");
+              elements.datatable.classList.add("normal_mode");
+              elements.options[right_answer_idx].classList.remove("correct");
+              elements.options[option_id].classList.remove("incorrect");
+              next_card();
+            },
+            correct ? 750 : 1500
+          );
+        };
+        return h;
+      };
+
+      const audio_click_handler = (e) => {
+        e.preventDefault();
+        if (mode === 0) {
+          audioRef.current.play();
+        }
+      };
 
       const next_card = () => {
         let card;
@@ -130,10 +143,15 @@ document.addEventListener("DOMContentLoaded", () => {
           alternate_definitions.add(alternate_idx);
         }
 
-        elements.character.innerHTML = card.character;
-        elements.pinyin.innerHTML = transformPinyin(card.pinyin);
-        elements.audio.setAttribute("src", audioPath(card.audio));
-        elements.audio.play();
+        ReactDOM.render(
+          <CEHeadword
+            card={card}
+            ref={audioRef}
+            audioClickHandler={audio_click_handler}
+          />,
+          document.getElementById("headword")
+        );
+        audioRef.current.play();
 
         // This index is where the correct answer goes. The other indexes
         // get set with one of the alternate indexes.
@@ -149,51 +167,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       };
 
-      const click_handler = (option_id) => {
-        const h = (e) => {
-          e.preventDefault();
-          if (mode === 1) {
-            return;
-          }
-          mode = 1;
-          elements.datatable.classList.add("answer_mode");
-          elements.options[right_answer_idx].classList.add("correct");
-          stats.attempted += 1;
-          const correct = option_id === right_answer_idx;
-          if (correct) {
-            stats.correct += 1;
-          } else {
-            elements.options[option_id].classList.add("incorrect");
-          }
-          updateStats(elements.stats, stats);
-          setTimeout(
-            () => {
-              mode = 0;
-              elements.datatable.classList.remove("answer_mode");
-              elements.datatable.classList.add("normal_mode");
-              elements.options[right_answer_idx].classList.remove("correct");
-              elements.options[option_id].classList.remove("incorrect");
-              next_card();
-            },
-            correct ? 750 : 1500
-          );
-        };
-        return h;
-      };
-
-      const audio_click_handler = (e) => {
-        e.preventDefault();
-        if (mode === 0 && elements.audio.hasAttribute("src")) {
-          elements.audio.play();
-        }
-      };
-
-      [elements.character, elements.pinyin].forEach((elem) =>
-        elem.addEventListener("click", audio_click_handler)
-      );
-
       elements.options.forEach((elem, i) =>
-        elem.addEventListener("click", click_handler(i))
+        elem.addEventListener("click", option_click_handler(i))
       );
 
       next_card();
