@@ -1,10 +1,13 @@
-import React from "react";
+import React, { useEffect } from "react";
 
 import Character from "./Character";
 import Pinyin from "./Pinyin";
 import { getAudioPath } from "../utils/helpers";
 
 const renderCEHeadword = (props, ref) => {
+  useEffect(() => {
+    ref.current.play();
+  }, [props.card.character]);
   return (
     <div id="headword">
       <Character

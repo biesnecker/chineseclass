@@ -1,7 +1,6 @@
 import React from "react";
 
 const CEOptions = (props) => {
-  console.log(props.choices);
   const optdivs = props.choices.map((elem, idx) => {
     if (props.mode === 0) {
       return (
