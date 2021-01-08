@@ -7,7 +7,6 @@ import { prngFromSeed } from "../utils/random";
 const audioRef = React.createRef();
 
 const initialStateFromCards = (initial) => {
-  console.log("initialStateFromCards");
   const { cards, seed } = initial;
   const recent_max_size = Math.min(
     Math.max(Math.floor(cards.length / 2), 1),
@@ -137,8 +136,6 @@ const handleNextCard = (state, seed) => {
   }
 
   const newDirection = randomInteger(2);
-  console.log(newDirection);
-  console.log(newRecent);
 
   return {
     ...state,
@@ -155,7 +152,6 @@ const handleNextCard = (state, seed) => {
 };
 
 const stateReducer = (state, action) => {
-  console.log("in state reducer: ", action);
   switch (action.type) {
     case ActionType.SUBMIT_ANSWER:
       return handleSubmitAnswer(state, action.payload);
