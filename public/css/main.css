@@ -28,6 +28,12 @@ h1 {
   cursor: pointer;
 }
 
+.english_headword {
+  font-size: 2em;
+  margin-bottom: 1em;
+  text-align: center;
+}
+
 #stats {
   padding: 1em;
   text-align: center;

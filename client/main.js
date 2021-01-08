@@ -2,11 +2,14 @@ import React from "react";
 import ReactDOM from "react-dom";
 import App from "./components/App";
 import { isIOS } from "./utils/helpers";
+import { randomSeedGenerator } from "./utils/random";
 
 document.addEventListener("DOMContentLoaded", () => {
   let flashcards = [];
 
   const ts = Math.floor(Date.now() / 1000);
+
+  const seed = randomSeedGenerator();
 
   fetch(`data.json?ts=${ts}`)
     .then((response) => response.json())
@@ -14,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
       jd.forEach((element) => flashcards.push(element));
 
       ReactDOM.render(
-        <App cards={flashcards} useHover={!isIOS()} />,
+        <App cards={flashcards} useHover={!isIOS()} seedGenerator={seed} />,
         document.getElementById("container")
       );
     });

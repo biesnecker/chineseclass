@@ -1,11 +1,18 @@
 import React from "react";
+import transformPinyin from "../utils/pinyin";
 
-const CEOptions = (props) => {
+const Options = (props) => {
   const optdivs = props.choices.map((elem, idx) => {
+    let optionText;
+    if (props.direction === 0) {
+      optionText = elem.definition;
+    } else {
+      optionText = `${elem.character} ${transformPinyin(elem.pinyin)}`;
+    }
     if (props.mode === 0) {
       return (
         <div className="opt" key={idx} onClick={props.clickHandlerFactory(idx)}>
-          {elem.definition}
+          {optionText}
         </div>
       );
     } else {
@@ -24,7 +31,7 @@ const CEOptions = (props) => {
           key={idx}
           onClick={props.clickHandlerFactory(idx)}
         >
-          {elem.definition}
+          {optionText}
         </div>
       );
     }
@@ -32,4 +39,4 @@ const CEOptions = (props) => {
   return <div>{optdivs}</div>;
 };
 
-export default CEOptions;
+export default Options;

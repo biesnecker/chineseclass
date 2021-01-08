@@ -1,31 +1,37 @@
 import React from "react";
-import CEHeadword from "./CEHeadword";
-import CEOptions from "./CEOptions";
+import Headword from "./Headword";
+import Options from "./Options";
 import Stats from "./Stats";
-import { randomInteger } from "../utils/helpers";
+import { prngFromSeed } from "../utils/random";
 
 const audioRef = React.createRef();
 
-const initialStateFromCards = (cards) => {
+const initialStateFromCards = (initial) => {
+  console.log("initialStateFromCards");
+  const { cards, seed } = initial;
   const recent_max_size = Math.min(
     Math.max(Math.floor(cards.length / 2), 1),
     20
   );
 
-  return handleNextCard({
-    mode: 0,
-    cards: cards,
-    currentCard: null,
-    currentCardIdx: 0,
-    recent: new Array(recent_max_size).fill(null),
-    recentNextInsert: 0,
-    recentSet: new Set(),
-    choices: [],
-    rightAnswerIdx: 0,
-    chosenAnswerIdx: 0,
-    reviewsCorrect: 0,
-    reviewsAttempted: 0,
-  });
+  return handleNextCard(
+    {
+      mode: 0,
+      cards: cards,
+      currentCard: null,
+      currentCardIdx: 0,
+      recent: new Array(recent_max_size).fill(null),
+      recentNextInsert: 0,
+      recentSet: new Set(),
+      choices: [],
+      rightAnswerIdx: 0,
+      chosenAnswerIdx: 0,
+      reviewsCorrect: 0,
+      reviewsAttempted: 0,
+      direction: 0,
+    },
+    seed
+  );
 };
 
 const ActionType = {
@@ -39,7 +45,11 @@ const handleSubmitAnswer = (state, payload) => {
   const reviewsAttempted = state.reviewsAttempted + 1;
   const reviewsCorrect = state.reviewsCorrect + (correct ? 1 : 0);
   setTimeout(
-    () => payload.dispatch({ type: ActionType.NEXT_CARD }),
+    () =>
+      payload.dispatch({
+        type: ActionType.NEXT_CARD,
+        payload: { seed: payload.seed },
+      }),
     correct ? 750 : 1500
   );
   return {
@@ -51,7 +61,8 @@ const handleSubmitAnswer = (state, payload) => {
   };
 };
 
-const handleNextCard = (state) => {
+const handleNextCard = (state, seed) => {
+  const randomInteger = prngFromSeed(seed);
   let finished = false;
   let newRecentSet = new Set(state.recentSet);
   let newRecent = [...state.recent];
@@ -105,9 +116,14 @@ const handleNextCard = (state) => {
       newChoices.push(state.cards[alts.next().value]);
     }
   }
+
+  const newDirection = randomInteger(2);
+  console.log(newDirection);
+  console.log(newRecent);
+
   return {
     ...state,
-    recent: newRecentSet,
+    recent: newRecent,
     recentNextInsert: newRecentNextInsert,
     recentSet: newRecentSet,
     currentCard: newCurrentCard,
@@ -115,62 +131,67 @@ const handleNextCard = (state) => {
     rightAnswerIdx: newRightAnswerIdx,
     choices: newChoices,
     mode: 0,
+    direction: newDirection,
   };
 };
 
 const stateReducer = (state, action) => {
+  console.log("in state reducer: ", action);
   switch (action.type) {
     case ActionType.SUBMIT_ANSWER:
       return handleSubmitAnswer(state, action.payload);
     case ActionType.NEXT_CARD:
-      return handleNextCard(state);
+      return handleNextCard(state, action.payload.seed);
   }
   return state;
 };
 
-const audioClickHandlerFactory = (audioRef, mode) => {
-  return (e) => {
+const App = (props) => {
+  const [state, dispatch] = React.useReducer(
+    stateReducer,
+    {
+      cards: props.cards,
+      seed: props.seedGenerator(),
+    },
+    initialStateFromCards
+  );
+
+  const audioClickHandler = (e) => {
     e.preventDefault();
-    if (mode === 0) {
+    if (state.mode === 0) {
       audioRef.current.play();
     }
   };
-};
 
-const optionClickHandlerFactory = (dispatch) => {
-  return (idx) => (e) => {
+  const optionClickHandlerFactory = (idx) => (e) => {
     e.preventDefault();
     dispatch({
       type: ActionType.SUBMIT_ANSWER,
       payload: {
         optionIdx: idx,
         dispatch: dispatch,
+        seed: props.seedGenerator(),
       },
     });
   };
-};
 
-const App = (props) => {
-  const [state, dispatch] = React.useReducer(
-    stateReducer,
-    initialStateFromCards(props.cards)
-  );
   const modeClass = state.mode == 0 ? "normal_mode" : "answer_mode";
   const hoverClass = props.useHover ? "use_hover" : "";
-
   return (
     <div id="datatable" className={`${modeClass} ${hoverClass}`}>
-      <CEHeadword
+      <Headword
         card={state.currentCard}
         ref={audioRef}
-        audioClickHandler={audioClickHandlerFactory(audioRef, state.mode)}
+        direction={state.direction}
+        audioClickHandler={audioClickHandler}
       />
-      <CEOptions
+      <Options
         choices={state.choices}
         mode={state.mode}
         rightAnswer={state.rightAnswerIdx}
         chosenAnswer={state.chosenAnswerIdx}
-        clickHandlerFactory={optionClickHandlerFactory(dispatch)}
+        direction={state.direction}
+        clickHandlerFactory={optionClickHandlerFactory}
       />
       <Stats
         correct={state.reviewsCorrect}
