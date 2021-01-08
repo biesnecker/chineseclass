@@ -5,6 +5,28 @@ import CEOptions from "./components/CEOptions";
 import Stats from "./components/Stats";
 import { isIOS, randomInteger } from "./utils/helpers";
 
+const initialStateFromCards = (cards) => {
+  const recent_max_size = Math.min(
+    Math.max(Math.floor(cards.length / 2), 1),
+    20
+  );
+
+  return {
+    mode: 0,
+    cards: cards,
+    currentCard: null,
+    currentCardIdx: 0,
+    recent: new Array(recent_max_size).fill(null),
+    recentNextInsert: 0,
+    recentSet: new Set(),
+    choices: [],
+    rightAnswerIdx: 0,
+    chosenAnswerIdx: 0,
+    reviewsCorrect: 0,
+    reviewsAttempted: 0,
+  };
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   let stats = {
     correct: 0,
@@ -21,45 +43,31 @@ document.addEventListener("DOMContentLoaded", () => {
     .then((jd) => {
       jd.forEach((element) => flashcards.push(element));
 
+      let state = initialStateFromCards(flashcards);
+
       const audioRef = React.createRef();
 
-      let recent = [];
-      const recent_max_size = Math.min(
-        Math.max(Math.floor(flashcards.length / 2), 1),
-        20
-      );
-      let recent_set = new Set();
-      let recent_next_insert = 0;
-      for (let i = 0; i < recent_max_size; ++i) {
-        recent.push(null);
-      }
-
-      let right_answer_idx = 0;
-      let chosen_answer_idx = 0;
-
-      let choices = [];
-
-      let card;
-      let card_idx;
-
       const render = () => {
-        const mode_class = mode == 0 ? "normal_mode" : "answer_mode";
+        const mode_class = state.mode == 0 ? "normal_mode" : "answer_mode";
         const hover_class = isIOS() ? "" : "use_hover";
         ReactDOM.render(
           <div id="datatable" className={`${mode_class} ${hover_class}`}>
             <CEHeadword
-              card={card}
+              card={state.currentCard}
               ref={audioRef}
               audioClickHandler={audio_click_handler}
             />
             <CEOptions
-              choices={choices}
-              mode={mode}
-              rightAnswer={right_answer_idx}
-              chosenAnswer={chosen_answer_idx}
+              choices={state.choices}
+              mode={state.mode}
+              rightAnswer={state.rightAnswerIdx}
+              chosenAnswer={state.chosenAnswerIdx}
               clickHandlerFactory={option_click_handler}
             />
-            <Stats correct={stats.correct} attempted={stats.attempted} />
+            <Stats
+              correct={state.reviewsCorrect}
+              attempted={state.reviewsAttempted}
+            />
           </div>,
           document.getElementById("container")
         );
@@ -68,20 +76,20 @@ document.addEventListener("DOMContentLoaded", () => {
       const option_click_handler = (option_id) => {
         const h = (e) => {
           e.preventDefault();
-          if (mode === 1) {
+          if (state.mode === 1) {
             return;
           }
-          mode = 1;
-          chosen_answer_idx = option_id;
-          const correct = chosen_answer_idx === right_answer_idx;
+          state.mode = 1;
+          state.chosenAnswerIdx = option_id;
+          const correct = state.chosenAnswerIdx === state.rightAnswerIdx;
           if (correct) {
-            stats.correct += 1;
+            state.reviewsCorrect += 1;
           }
-          stats.attempted += 1;
+          state.reviewsAttempted += 1;
           render();
           setTimeout(
             () => {
-              mode = 0;
+              state.mode = 0;
               next_card();
             },
             correct ? 750 : 1500
@@ -92,30 +100,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const audio_click_handler = (e) => {
         e.preventDefault();
-        if (mode === 0) {
+        if (state.mode === 0) {
           audioRef.current.play();
         }
       };
 
       const next_card = () => {
         let finished = false;
-        if (recent[recent_next_insert] != null) {
-          const n = recent[recent_next_insert];
-          recent_set.delete(n);
-          recent[recent_next_insert] = null;
+        if (state.recent[state.recentNextInsert] != null) {
+          const n = state.recent[state.recentNextInsert];
+          state.recentSet.delete(n);
+          state.recent[state.recentNextInsert] = null;
         }
 
         while (!finished) {
-          const idx = randomInteger(flashcards.length);
-          if (recent_set.has(idx)) {
+          const idx = randomInteger(state.cards.length);
+          if (state.recentSet.has(idx)) {
             continue;
           }
-          card = flashcards[idx];
-          recent[recent_next_insert] = idx;
-          recent_next_insert = recent_next_insert + 1;
-          recent_next_insert %= recent_max_size;
-          card_idx = idx;
-          recent_set.add(idx);
+          state.currentCard = flashcards[idx];
+          state.recent[state.recentNextInsert] = idx;
+          state.recentNextInsert = state.recentNextInsert + 1;
+          state.recentNextInsert %= state.recent.length;
+          state.currentCardIdx = idx;
+          state.recentSet.add(idx);
           finished = true;
         }
 
@@ -125,9 +133,9 @@ document.addEventListener("DOMContentLoaded", () => {
         while (alternate_definitions.size < 3) {
           alternate_idx = randomInteger(flashcards.length);
           if (
-            alternate_idx === card_idx ||
+            alternate_idx === state.currentCardIdx ||
             alternate_definitions.has(alternate_idx) ||
-            recent_set.has(alternate_idx)
+            state.recentSet.has(alternate_idx)
           ) {
             continue;
           }
@@ -137,13 +145,13 @@ document.addEventListener("DOMContentLoaded", () => {
         // This index is where the correct answer goes. The other indexes
         // get set with one of the alternate indexes.
         const alts = alternate_definitions.values();
-        choices = [];
-        right_answer_idx = randomInteger(4);
+        state.choices = [];
+        state.rightAnswerIdx = randomInteger(4);
         for (let i = 0; i < 4; ++i) {
-          if (i === right_answer_idx) {
-            choices.push(card);
+          if (i === state.rightAnswerIdx) {
+            state.choices.push(state.currentCard);
           } else {
-            choices.push(flashcards[alts.next().value]);
+            state.choices.push(state.cards[alts.next().value]);
           }
         }
 
