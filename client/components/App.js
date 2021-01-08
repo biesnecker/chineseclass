@@ -40,22 +40,41 @@ const ActionType = {
 };
 
 const handleSubmitAnswer = (state, payload) => {
+  const { optionIdx, direction, dispatch, seed } = payload;
   // First enqueue the next card callback.
-  const correct = state.rightAnswerIdx === payload.optionIdx;
+  const correct = state.rightAnswerIdx === optionIdx;
   const reviewsAttempted = state.reviewsAttempted + 1;
   const reviewsCorrect = state.reviewsCorrect + (correct ? 1 : 0);
-  setTimeout(
-    () =>
-      payload.dispatch({
-        type: ActionType.NEXT_CARD,
-        payload: { seed: payload.seed },
-      }),
-    correct ? 750 : 1500
-  );
+  if (direction === 0) {
+    setTimeout(
+      () =>
+        dispatch({
+          type: ActionType.NEXT_CARD,
+          payload: { seed: seed },
+        }),
+      correct ? 750 : 1500
+    );
+  } else {
+    // Need to attach a listener to the audioref that will trigger the next call
+    // and then remove itself, then play the audio. :-/
+    const onendedCallback = () => {
+      audioRef.current.removeEventListener("ended", onendedCallback);
+      setTimeout(
+        () =>
+          dispatch({
+            type: ActionType.NEXT_CARD,
+            payload: { seed: seed },
+          }),
+        correct ? 500 : 1250
+      );
+    };
+    audioRef.current.addEventListener("ended", onendedCallback);
+    audioRef.current.play();
+  }
   return {
     ...state,
     mode: 1,
-    chosenAnswerIdx: payload.optionIdx,
+    chosenAnswerIdx: optionIdx,
     reviewsAttempted: reviewsAttempted,
     reviewsCorrect: reviewsCorrect,
   };
@@ -169,6 +188,7 @@ const App = (props) => {
       type: ActionType.SUBMIT_ANSWER,
       payload: {
         optionIdx: idx,
+        direction: state.direction,
         dispatch: dispatch,
         seed: props.seedGenerator(),
       },
