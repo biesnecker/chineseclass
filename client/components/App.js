@@ -126,8 +126,6 @@ const handleNextCard = (state, seed) => {
   }
   newCurrentCard = state.cards[newCurrentCardIdx];
   newRecent.add(newCurrentCardIdx);
-  console.log("Recent set: ", [...newRecent]);
-  console.log("Missed set: ", [...newMissed]);
 
   let alternate_definitions = new Set();
   let alternate_idx = 0;
