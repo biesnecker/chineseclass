@@ -3,6 +3,7 @@ import Headword from "./Headword";
 import Options from "./Options";
 import Stats from "./Stats";
 import { prngFromSeed } from "../utils/random";
+import { setPopFront } from "../utils/sets";
 
 const audioRef = React.createRef();
 
@@ -10,7 +11,7 @@ const initialStateFromCards = (initial) => {
   const { cards, seed } = initial;
   const recent_max_size = Math.min(
     Math.max(Math.floor(cards.length / 2), 1),
-    20
+    12
   );
 
   return handleNextCard(
@@ -19,9 +20,9 @@ const initialStateFromCards = (initial) => {
       cards: cards,
       currentCard: null,
       currentCardIdx: 0,
-      recent: new Array(recent_max_size).fill(null),
-      recentNextInsert: 0,
-      recentSet: new Set(),
+      recent: new Set(),
+      recentMaxSize: recent_max_size,
+      missed: new Set(),
       choices: [],
       rightAnswerIdx: 0,
       chosenAnswerIdx: 0,
@@ -44,6 +45,12 @@ const handleSubmitAnswer = (state, payload) => {
   const correct = state.rightAnswerIdx === optionIdx;
   const reviewsAttempted = state.reviewsAttempted + 1;
   const reviewsCorrect = state.reviewsCorrect + (correct ? 1 : 0);
+  if (correct) {
+    newMissed = state.missed;
+  } else {
+    newMissed = new Set(state.missed);
+    newMissed.add(state.currentCardIdx);
+  }
   if (direction === 0) {
     setTimeout(
       () =>
@@ -73,39 +80,54 @@ const handleSubmitAnswer = (state, payload) => {
   return {
     ...state,
     mode: 1,
+    missed: newMissed,
     chosenAnswerIdx: optionIdx,
     reviewsAttempted: reviewsAttempted,
     reviewsCorrect: reviewsCorrect,
   };
 };
 
+const getWeightedRandomCard = (rndF, nCards) => {
+  const max = (nCards * (nCards + 1)) / 2;
+  const idx = rndF(max);
+  return Math.floor(0.5 * (1 + Math.sqrt(1 + 8 * idx))) - 1;
+};
+
 const handleNextCard = (state, seed) => {
   const randomInteger = prngFromSeed(seed);
   let finished = false;
-  let newRecentSet = new Set(state.recentSet);
-  let newRecent = [...state.recent];
-  let newRecentNextInsert = state.recentNextInsert;
-  if (newRecent[newRecentNextInsert] != null) {
-    const n = newRecent[newRecentNextInsert];
-    newRecentSet.delete(n);
-    newRecent[newRecentNextInsert] = null;
+  let newRecent = new Set(state.recent);
+  let newMissed = new Set(state.missed);
+
+  let popped;
+  if (newRecent.size >= state.recentMaxSize) {
+    popped = setPopFront(newRecent);
   }
 
   let newCurrentCard;
   let newCurrentCardIdx;
 
-  while (!finished) {
-    newCurrentCardIdx = randomInteger(state.cards.length);
-    if (newRecentSet.has(newCurrentCardIdx)) {
-      continue;
+  if (newMissed.has(popped)) {
+    // If the most recently popped card from the recent list was missed last
+    // time, then that's our card. Otherwise do the normal selection.
+    newCurrentCardIdx = popped;
+    newMissed.delete(popped);
+  } else {
+    while (!finished) {
+      newCurrentCardIdx = getWeightedRandomCard(
+        randomInteger,
+        state.cards.length
+      );
+      if (newRecent.has(newCurrentCardIdx)) {
+        continue;
+      }
+      finished = true;
     }
-    newCurrentCard = state.cards[newCurrentCardIdx];
-    newRecent[newRecentNextInsert] = newCurrentCardIdx;
-    newRecentNextInsert++;
-    newRecentNextInsert %= newRecent.length;
-    newRecentSet.add(newCurrentCardIdx);
-    finished = true;
   }
+  newCurrentCard = state.cards[newCurrentCardIdx];
+  newRecent.add(newCurrentCardIdx);
+  console.log("Recent set: ", [...newRecent]);
+  console.log("Missed set: ", [...newMissed]);
 
   let alternate_definitions = new Set();
   let alternate_idx = 0;
@@ -115,7 +137,7 @@ const handleNextCard = (state, seed) => {
     if (
       alternate_idx === newCurrentCardIdx ||
       alternate_definitions.has(alternate_idx) ||
-      newRecentSet.has(alternate_idx)
+      newRecent.has(alternate_idx)
     ) {
       continue;
     }
@@ -140,8 +162,7 @@ const handleNextCard = (state, seed) => {
   return {
     ...state,
     recent: newRecent,
-    recentNextInsert: newRecentNextInsert,
-    recentSet: newRecentSet,
+    missed: newMissed,
     currentCard: newCurrentCard,
     currentCardIdx: newCurrentCardIdx,
     rightAnswerIdx: newRightAnswerIdx,
