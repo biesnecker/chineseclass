@@ -22,7 +22,8 @@ const initialStateFromCards = (initial) => {
       currentCardIdx: 0,
       recent: new Set(),
       recentMaxSize: recent_max_size,
-      missed: new Set(),
+      recentMissed: new Set(),
+      recentCorrect: new Set(),
       choices: [],
       rightAnswerIdx: 0,
       chosenAnswerIdx: 0,
@@ -45,11 +46,16 @@ const handleSubmitAnswer = (state, payload) => {
   const correct = state.rightAnswerIdx === optionIdx;
   const reviewsAttempted = state.reviewsAttempted + 1;
   const reviewsCorrect = state.reviewsCorrect + (correct ? 1 : 0);
+  let newRecentMissed;
+  let newRecentCorrect;
   if (correct) {
-    newMissed = state.missed;
+    newRecentMissed = state.recentMissed;
+    newRecentCorrect = new Set(state.recentCorrect);
+    newRecentCorrect.add(state.currentCardIdx);
   } else {
-    newMissed = new Set(state.missed);
-    newMissed.add(state.currentCardIdx);
+    newRecentCorrect = state.recentCorrect;
+    newRecentMissed = new Set(state.recentMissed);
+    newRecentMissed.add(state.currentCardIdx);
   }
   if (direction === 0) {
     setTimeout(
@@ -80,7 +86,8 @@ const handleSubmitAnswer = (state, payload) => {
   return {
     ...state,
     mode: 1,
-    missed: newMissed,
+    recentMissed: newRecentMissed,
+    recentCorrect: newRecentCorrect,
     chosenAnswerIdx: optionIdx,
     reviewsAttempted: reviewsAttempted,
     reviewsCorrect: reviewsCorrect,
@@ -97,7 +104,8 @@ const handleNextCard = (state, seed) => {
   const randomInteger = prngFromSeed(seed);
   let finished = false;
   let newRecent = new Set(state.recent);
-  let newMissed = new Set(state.missed);
+  let newRecentMissed = new Set(state.recentMissed);
+  let newRecentCorrect = new Set(state.recentCorrect);
 
   let popped;
   if (newRecent.size >= state.recentMaxSize) {
@@ -107,11 +115,11 @@ const handleNextCard = (state, seed) => {
   let newCurrentCard;
   let newCurrentCardIdx;
 
-  if (newMissed.has(popped)) {
-    // If the most recently popped card from the recent list was missed last
+  if (newRecentMissed.has(popped)) {
+    // If the most recently popped card from the recent list was recentMissed last
     // time, then that's our card. Otherwise do the normal selection.
     newCurrentCardIdx = popped;
-    newMissed.delete(popped);
+    newRecentMissed.delete(popped);
   } else {
     while (!finished) {
       newCurrentCardIdx = getWeightedRandomCard(
@@ -119,6 +127,11 @@ const handleNextCard = (state, seed) => {
         state.cards.length
       );
       if (newRecent.has(newCurrentCardIdx)) {
+        continue;
+      }
+      if (newRecentCorrect.has(newCurrentCardIdx)) {
+        // Remove it from the recent correct but don't choose it.
+        newRecentCorrect.delete(newCurrentCardIdx);
         continue;
       }
       finished = true;
@@ -160,7 +173,8 @@ const handleNextCard = (state, seed) => {
   return {
     ...state,
     recent: newRecent,
-    missed: newMissed,
+    recentMissed: newRecentMissed,
+    recentCorrect: newRecentCorrect,
     currentCard: newCurrentCard,
     currentCardIdx: newCurrentCardIdx,
     rightAnswerIdx: newRightAnswerIdx,
