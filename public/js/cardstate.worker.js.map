@@ -1,0 +1,1 @@
+{"version":3,"sources":["webpack://chineseclass/./client/workers/cardstate.js"],"names":["onmessage","e","console","log","postMessage"],"mappings":"AAAAA,UAAaC,IACXC,QAAQC,IAAI,uBACZC,YAAY","file":"cardstate.worker.js","sourcesContent":["onmessage = (e) => {\n  console.log(\"Received a message!\");\n  postMessage(\"Sent a message!\");\n};\n"],"sourceRoot":""}

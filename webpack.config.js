@@ -14,6 +14,10 @@ module.exports = {
         test: /\.js$/,
         exclude: /node_modules/,
       },
+      {
+        loader: "worker-loader",
+        test: /workers\/.+?\.js$/,
+      },
     ],
   },
 };
