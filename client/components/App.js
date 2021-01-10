@@ -30,6 +30,7 @@ const initialStateFromCards = (initial) => {
       reviewsCorrect: 0,
       reviewsAttempted: 0,
       direction: 0,
+      answerHandlerEnabled: true,
     },
     seed
   );
@@ -91,6 +92,7 @@ const handleSubmitAnswer = (state, payload) => {
     chosenAnswerIdx: optionIdx,
     reviewsAttempted: reviewsAttempted,
     reviewsCorrect: reviewsCorrect,
+    answerHandlerEnabled: false,
   };
 };
 
@@ -181,6 +183,7 @@ const handleNextCard = (state, seed) => {
     choices: newChoices,
     mode: 0,
     direction: newDirection,
+    answerHandlerEnabled: true,
   };
 };
 
@@ -213,6 +216,9 @@ const App = (props) => {
 
   const optionClickHandlerFactory = (idx) => (e) => {
     e.preventDefault();
+    if (!state.answerHandlerEnabled) {
+      return;
+    }
     dispatch({
       type: ActionType.SUBMIT_ANSWER,
       payload: {
