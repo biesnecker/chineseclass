@@ -4,11 +4,12 @@ import Options from "./Options";
 import Stats from "./Stats";
 import { prngFromSeed } from "../utils/random";
 import { setPopFront } from "../utils/sets";
+import MessageType from "../shared/MessageType";
 
 const audioRef = React.createRef();
 
 const initialStateFromCards = (initial) => {
-  const { cards, seed } = initial;
+  const { cards, seed, worker, appName } = initial;
   const recent_max_size = Math.min(
     Math.max(Math.floor(cards.length / 2), 1),
     12
@@ -31,6 +32,8 @@ const initialStateFromCards = (initial) => {
       reviewsAttempted: 0,
       direction: 0,
       answerHandlerEnabled: true,
+      worker: worker,
+      appName: appName,
     },
     seed
   );
@@ -58,32 +61,35 @@ const handleSubmitAnswer = (state, payload) => {
     newRecentMissed = new Set(state.recentMissed);
     newRecentMissed.add(state.currentCardIdx);
   }
+  let nextStepPromise;
   if (direction === 0) {
-    setTimeout(
-      () =>
-        dispatch({
-          type: ActionType.NEXT_CARD,
-          payload: { seed: seed },
-        }),
-      correct ? 750 : 1500
+    nextStepPromise = new Promise((resolve, reject) =>
+      setTimeout(() => resolve(true), correct ? 750 : 1500)
     );
   } else {
-    // Need to attach a listener to the audioref that will trigger the next call
-    // and then remove itself, then play the audio. :-/
-    const onendedCallback = () => {
-      audioRef.current.removeEventListener("ended", onendedCallback);
-      setTimeout(
-        () =>
-          dispatch({
-            type: ActionType.NEXT_CARD,
-            payload: { seed: seed },
-          }),
-        correct ? 500 : 1250
-      );
-    };
-    audioRef.current.addEventListener("ended", onendedCallback);
-    audioRef.current.play();
+    nextStepPromise = new Promise((resolve, reject) => {
+      const onendedCallback = () => {
+        audioRef.current.removeEventListener("ended", onendedCallback);
+        setTimeout(() => resolve(true), correct ? 500 : 1250);
+      };
+      audioRef.current.addEventListener("ended", onendedCallback);
+      audioRef.current.play();
+    });
   }
+  const updateStatePromise = state.worker.sendMessage(
+    correct ? MessageType.UPDATE_ON_CORRECT : MessageType.UPDATE_ON_INCORRECT,
+    {
+      appName: state.appName,
+      factId: state.currentCardIdx,
+      reviewType: direction,
+    }
+  );
+  Promise.all([nextStepPromise, updateStatePromise]).then(() => {
+    dispatch({
+      type: ActionType.NEXT_CARD,
+      payload: { seed: seed },
+    });
+  });
   return {
     ...state,
     mode: 1,
@@ -203,6 +209,8 @@ const App = (props) => {
     {
       cards: props.cards,
       seed: props.seedGenerator(),
+      worker: props.worker,
+      appName: props.appName,
     },
     initialStateFromCards
   );

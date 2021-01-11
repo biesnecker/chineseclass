@@ -1,33 +1,32 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import App from "./components/App";
+import PromiseWorker from "./PromiseWorker";
+import MessageType from "./shared/MessageType";
 import { isIOS } from "./utils/helpers";
 import { randomSeedGenerator } from "./utils/random";
 
-import Worker from "./workers/cardstate";
+import CardStateWorker from "./workers/cardstate";
 
-document.addEventListener("DOMContentLoaded", () => {
-  let flashcards = [];
+const appName = "kids_chinese_flashcards";
 
-  const ts = Math.floor(Date.now() / 1000);
-
+document.addEventListener("DOMContentLoaded", async () => {
   const seed = randomSeedGenerator();
 
-  const worker = new Worker();
-  worker.addEventListener("message", (e) =>
-    console.log(`message from worker: ${e.data}`)
+  const worker = new PromiseWorker(new CardStateWorker());
+
+  const ts = Math.floor(Date.now() / 1000);
+  const data = await fetch(`data.json?ts=${ts}`);
+  const flashcards = await data.json();
+
+  ReactDOM.render(
+    <App
+      cards={flashcards}
+      useHover={!isIOS()}
+      seedGenerator={seed}
+      worker={worker}
+      appName={appName}
+    />,
+    document.getElementById("container")
   );
-
-  worker.postMessage("hello worker");
-
-  fetch(`data.json?ts=${ts}`)
-    .then((response) => response.json())
-    .then((jd) => {
-      jd.forEach((element) => flashcards.push(element));
-
-      ReactDOM.render(
-        <App cards={flashcards} useHover={!isIOS()} seedGenerator={seed} />,
-        document.getElementById("container")
-      );
-    });
 });

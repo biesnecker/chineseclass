@@ -1,0 +1,8 @@
+const MessageType = {
+  FETCH_ALL: "FETCH_ALL",
+  FETCH_ONE: "FETCH_ONE",
+  UPDATE_ON_CORRECT: "UPDATE_ON_CORRECT",
+  UPDATE_ON_INCORRECT: "UPDATE_ON_INCORRECT",
+};
+
+export default MessageType;
