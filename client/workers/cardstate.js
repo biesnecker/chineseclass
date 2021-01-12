@@ -6,7 +6,7 @@
  */
 import { makeWorkerFromHandlers } from "../PromiseWorker";
 import MessageType from "../shared/MessageType";
-import { openDB } from "idb";
+import { openDB } from "idb/with-async-ittr";
 
 const dbname = "flashcards";
 const dbversion = 1;
@@ -24,13 +24,20 @@ const connect = async (appName) =>
 
 const handleFetchAll = async ({ appName }) => {
   const db = await connect(appName);
-  const allData = await db.getAll(appName);
-  console.log(allData);
-  db.close();
+  const cnt = await db.count(appName);
+  let data = new Uint32Array(cnt * 4);
+  let idx = 0;
+  const tx = db.transaction(appName);
+  for await (const cursor of tx.store) {
+    const value = cursor.value;
+    data[idx++] = value.id[0];
+    data[idx++] = value.id[1];
+    data[idx++] = value.difficulty;
+    data[idx++] = value.lastReviewDate;
+  }
 
   const res = {
-    content: "foo",
-    data: new Uint32Array([]).buffer,
+    data: data.buffer,
   };
   return [res, [res.data]];
 };
