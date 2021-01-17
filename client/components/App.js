@@ -108,6 +108,38 @@ const getWeightedRandomCard = (rndF, nCards) => {
   return Math.floor(0.5 * (1 + Math.sqrt(1 + 8 * idx))) - 1;
 };
 
+const definitionsTooSimilar = (
+  cards,
+  possibleNewAlternate,
+  currentCard,
+  existingAlternates
+) => {
+  const posDef = cards[possibleNewAlternate].definition;
+  let alts = [...existingAlternates, currentCard];
+  return alts.some((alt) => {
+    const altDef = cards[alt].definition;
+    if (posDef.localeCompare(altDef) === 0) {
+      return true;
+    } else {
+      const lengthDiff = Math.abs(posDef.length - altDef.length);
+      if (lengthDiff > 2) {
+        return false;
+      }
+      const iMin = Math.min(posDef.length, altDef.length);
+      const diffLimit = Math.max(1, Math.floor(iMin / 3));
+      let count = 0;
+      let idx = 0;
+      while (idx < iMin && count < diffLimit) {
+        if (posDef.charAt(idx) !== altDef.charAt(idx)) {
+          ++count;
+        }
+        ++idx;
+      }
+      return count < diffLimit;
+    }
+  });
+};
+
 const handleNextCard = (state, seed) => {
   const randomInteger = prngFromSeed(seed);
   let finished = false;
@@ -156,7 +188,13 @@ const handleNextCard = (state, seed) => {
     if (
       alternate_idx === newCurrentCardIdx ||
       alternate_definitions.has(alternate_idx) ||
-      newRecent.has(alternate_idx)
+      newRecent.has(alternate_idx) ||
+      definitionsTooSimilar(
+        state.cards,
+        alternate_idx,
+        newCurrentCardIdx,
+        alternate_definitions
+      )
     ) {
       continue;
     }

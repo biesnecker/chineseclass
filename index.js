@@ -88,9 +88,9 @@ fs.createReadStream(path.resolve(__dirname, "input.csv"))
   .pipe(csv.parse({ headers: false }))
   .transform((row, next) => {
     const options = handleOptions(row.slice(OPTIONS_START));
-    const row_text = [row[0], row[1], row[2]].join("|");
+    const row_text = [row[0], row[1]].join("|");
     if (already_seen.has(row_text)) {
-      return next();
+      throw new Error(`Duplicate: ${row_text}`);
     }
     already_seen.add(row_text);
 
