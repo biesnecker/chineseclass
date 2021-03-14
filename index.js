@@ -87,6 +87,9 @@ const handleOptions = (opts) => {
 fs.createReadStream(path.resolve(__dirname, "input.csv"))
   .pipe(csv.parse({ headers: false }))
   .transform((row, next) => {
+    if (row.length < 3) {
+      throw new Error(`Invalid line: ${row}`);
+    }
     const options = handleOptions(row.slice(OPTIONS_START));
     const row_text = [row[0], row[1]].join("|");
     if (already_seen.has(row_text)) {
