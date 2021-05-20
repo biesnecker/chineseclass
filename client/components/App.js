@@ -34,6 +34,7 @@ const initialStateFromCards = (initial) => {
       answerHandlerEnabled: true,
       worker: worker,
       appName: appName,
+      startTime: new Date(),
     },
     seed
   );
@@ -297,6 +298,7 @@ const App = (props) => {
       <Stats
         correct={state.reviewsCorrect}
         attempted={state.reviewsAttempted}
+        startTime={state.startTime}
       />
     </div>
   );
