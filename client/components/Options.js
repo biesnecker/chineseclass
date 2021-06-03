@@ -1,13 +1,19 @@
 import React from "react";
 import transformPinyin from "../utils/pinyin";
+import ReviewType from "../shared/ReviewType";
 
 const Options = (props) => {
   const optdivs = props.choices.map((elem, idx) => {
     let optionText;
-    if (props.direction === 0) {
-      optionText = elem.definition;
-    } else {
-      optionText = `${elem.character} ${transformPinyin(elem.pinyin)}`;
+    switch (props.reviewType) {
+      case ReviewType.CHINESE_TO_ENGLISH:
+        optionText = elem.definition;
+        break;
+      case ReviewType.ENGLISH_TO_CHINESE:
+        optionText = `${elem.character} ${transformPinyin(elem.pinyin)}`;
+        break;
+      default:
+        throw new Error("Unknown review type: " + props.reviewType);
     }
     if (props.mode === 0) {
       return (

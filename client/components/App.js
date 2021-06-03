@@ -5,6 +5,7 @@ import Stats from "./Stats";
 import { prngFromSeed } from "../utils/random";
 import { setPopFront } from "../utils/sets";
 import MessageType from "../shared/MessageType";
+import ReviewType from "../shared/ReviewType";
 
 const audioRef = React.createRef();
 
@@ -30,7 +31,7 @@ const initialStateFromCards = (initial) => {
       chosenAnswerIdx: 0,
       reviewsCorrect: 0,
       reviewsAttempted: 0,
-      direction: 0,
+      reviewType: ReviewType.CHINESE_TO_ENGLISH,
       answerHandlerEnabled: true,
       worker: worker,
       appName: appName,
@@ -46,7 +47,7 @@ const ActionType = {
 };
 
 const handleSubmitAnswer = (state, payload) => {
-  const { optionIdx, direction, dispatch, seed } = payload;
+  const { optionIdx, reviewType, dispatch, seed } = payload;
   // First enqueue the next card callback.
   const correct = state.rightAnswerIdx === optionIdx;
   const reviewsAttempted = state.reviewsAttempted + 1;
@@ -63,26 +64,34 @@ const handleSubmitAnswer = (state, payload) => {
     newRecentMissed.add(state.currentCardIdx);
   }
   let nextStepPromise;
-  if (direction === 0) {
-    nextStepPromise = new Promise((resolve, reject) =>
-      setTimeout(() => resolve(true), correct ? 750 : 1500)
-    );
-  } else {
-    nextStepPromise = new Promise((resolve, reject) => {
-      const onendedCallback = () => {
-        audioRef.current.removeEventListener("ended", onendedCallback);
-        setTimeout(() => resolve(true), correct ? 500 : 1250);
-      };
-      audioRef.current.addEventListener("ended", onendedCallback);
-      audioRef.current.play();
-    });
+  switch (reviewType) {
+    case ReviewType.CHINESE_TO_ENGLISH: {
+      nextStepPromise = new Promise((resolve, reject) =>
+        setTimeout(() => resolve(true), correct ? 750 : 1500)
+      );
+      break;
+    }
+    case ReviewType.ENGLISH_TO_CHINESE: {
+      nextStepPromise = new Promise((resolve, reject) => {
+        const onendedCallback = () => {
+          audioRef.current.removeEventListener("ended", onendedCallback);
+          setTimeout(() => resolve(true), correct ? 500 : 1250);
+        };
+        audioRef.current.addEventListener("ended", onendedCallback);
+        audioRef.current.play();
+      });
+      break;
+    }
+    default:
+      throw new Error("Unknown review type: " + reviewType);
   }
+
   const updateStatePromise = state.worker.sendMessage(
     correct ? MessageType.UPDATE_ON_CORRECT : MessageType.UPDATE_ON_INCORRECT,
     {
       appName: state.appName,
       factId: state.currentCardIdx,
-      reviewType: direction,
+      reviewType: reviewType,
     }
   );
   Promise.all([nextStepPromise, updateStatePromise]).then(() => {
@@ -215,7 +224,8 @@ const handleNextCard = (state, seed) => {
     }
   }
 
-  const newDirection = randomInteger(2);
+  const rnd = Math.floor(Math.random() * Object.keys(ReviewType).length);
+  const newReviewType = ReviewType[Object.keys(ReviewType)[rnd]];
 
   return {
     ...state,
@@ -227,7 +237,7 @@ const handleNextCard = (state, seed) => {
     rightAnswerIdx: newRightAnswerIdx,
     choices: newChoices,
     mode: 0,
-    direction: newDirection,
+    reviewType: newReviewType,
     answerHandlerEnabled: true,
   };
 };
@@ -270,7 +280,7 @@ const App = (props) => {
       type: ActionType.SUBMIT_ANSWER,
       payload: {
         optionIdx: idx,
-        direction: state.direction,
+        reviewType: state.reviewType,
         dispatch: dispatch,
         seed: props.seedGenerator(),
       },
@@ -284,7 +294,7 @@ const App = (props) => {
       <Headword
         card={state.currentCard}
         ref={audioRef}
-        direction={state.direction}
+        reviewType={state.reviewType}
         audioClickHandler={audioClickHandler}
       />
       <Options
@@ -292,7 +302,7 @@ const App = (props) => {
         mode={state.mode}
         rightAnswer={state.rightAnswerIdx}
         chosenAnswer={state.chosenAnswerIdx}
-        direction={state.direction}
+        reviewType={state.reviewType}
         clickHandlerFactory={optionClickHandlerFactory}
       />
       <Stats
