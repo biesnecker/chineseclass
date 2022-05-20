@@ -8,7 +8,7 @@ import ReviewType from "../shared/ReviewType";
 const renderHeadword = (props, ref) => {
   useEffect(() => {
     if (props.reviewType === ReviewType.CHINESE_TO_ENGLISH) {
-      ref.current.play();
+      ref.current.play().catch((err) => console.log(err));
     }
   }, [props.card.character]);
   switch (props.reviewType) {
